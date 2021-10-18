@@ -1,5 +1,3 @@
-#Thu comment merge
-# Them 1 cai comment nua
 from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
