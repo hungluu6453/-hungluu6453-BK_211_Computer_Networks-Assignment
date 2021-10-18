@@ -1,4 +1,3 @@
-# Them comment 
 from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
