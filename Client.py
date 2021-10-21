@@ -21,13 +21,16 @@ class Client:
 	
 	# Initiation..
 	def __init__(self, master, serveraddr, serverport, rtpport, filename):
+		# Initialize the GUI
 		self.master = master
 		self.master.protocol("WM_DELETE_WINDOW", self.handler)
 		self.createWidgets()
+		# Input from user
 		self.serverAddr = serveraddr
 		self.serverPort = int(serverport)
 		self.rtpPort = int(rtpport)
 		self.fileName = filename
+		# Parameters
 		self.rtspSeq = 0
 		self.sessionId = 0
 		self.requestSent = -1
@@ -65,7 +68,8 @@ class Client:
 		# Create a label to display the movie
 		self.label = Label(self.master, height=19)
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5) 
-	
+
+	# Setup basic operations
 	def setupMovie(self):
 		"""Setup button handler."""
 	#TODO
@@ -81,7 +85,8 @@ class Client:
 	def playMovie(self):
 		"""Play button handler."""
 	#TODO
-	
+
+	#
 	def listenRtp(self):		
 		"""Listen for RTP packets."""
 		#TODO
@@ -105,7 +110,7 @@ class Client:
 		#-------------
 		
 	
-	
+	#
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
 		#TODO
@@ -129,3 +134,5 @@ class Client:
 	def handler(self):
 		"""Handler on explicitly closing the GUI window."""
 		#TODO
+
+		# auto TEARDOWN the session when the user explicily close the window -> Display a messagebox

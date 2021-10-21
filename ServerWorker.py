@@ -29,25 +29,25 @@ class ServerWorker:
 	
 	def recvRtspRequest(self):
 		"""Receive RTSP request from the client."""
-		connSocket = self.clientInfo['rtspSocket'][0]
+		connSocket = self.clientInfo['rtspSocket'][0]  # a socket object to send and receive data
 		while True:            
-			data = connSocket.recv(256)
+			data = connSocket.recv(256)  # data is a python bytes object -> the request, not the video
 			if data:
-				print("Data received:\n" + data.decode("utf-8"))
+				print("Data received:\n" + data.decode("utf-8"))  # decode from hexadecimal to string
 				self.processRtspRequest(data.decode("utf-8"))
 	
 	def processRtspRequest(self, data):
 		"""Process RTSP request sent from the client."""
 		# Get the request type
-		request = data.split('\n')
-		line1 = request[0].split(' ')
-		requestType = line1[0]
+		request = data.split('\n')  # the whole request (multiple lines)
+		line1 = request[0].split(' ')  # the first line Ex: SETUP movie.Mjpeg RTSP/1.0
+		requestType = line1[0] # get SETUP
 		
 		# Get the media file name
-		filename = line1[1]
+		filename = line1[1] # get movie.Mjpeg
 		
 		# Get the RTSP sequence number 
-		seq = request[1].split(' ')
+		seq = request[1].split(' ')  # Ex: CSeq: 1
 		
 		# Process SETUP request
 		if requestType == self.SETUP:
