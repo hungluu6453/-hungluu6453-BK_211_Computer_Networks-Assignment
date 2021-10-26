@@ -81,19 +81,33 @@ def createWidgets(self):
 def setupMovie(self):
     """Setup button handler."""
     # TODO
+    if self.state == self.INIT:
+            self.sendRtspRequest(self.SETUP)
 
 def exitClient(self):
     """Teardown button handler."""
     # TODO
+    self.sendRtspRequest(self.TEARDOWN)
+    self.master.destroy() # Close the gui window
+    os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
+
 
 def pauseMovie(self):
     """Pause button handler."""
     # TODO
+    if self.state == self.PLAYING:
+            self.sendRtspRequest(self.PAUSE)
 
 def playMovie(self):
     """Play button handler."""
+    # TODO
+    if self.state == self.READY:
+            # Create a new thread to listen for RTP packets
+            threading.Thread(target=self.listenRtp).start()
+            self.playEvent = threading.Event()
+            self.playEvent.clear()
+            self.sendRtspRequest(self.PLAY)
 
-# TODO
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #
 def listenRtp(self):
