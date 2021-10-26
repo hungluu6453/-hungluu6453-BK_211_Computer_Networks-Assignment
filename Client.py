@@ -131,7 +131,6 @@ def writeFrame(self, data):
 
 def updateMovie(self, imageFile):
     """Update the image file as video frame in the GUI."""
-
     # TODO
     photo = ImageTk.PhotoImage(Image.open(imageFile))
     self.label.configure(image= photo, height= 300)
@@ -207,26 +206,46 @@ def sendRtspRequest(self, requestCode):
 
 #  Operations when receive a package
 def recvRtspReply(self):
-    """Receive RTSP reply from the server.
-        Return the data (response or RtpPacket)"""
-    return self.rtspSocket.recv(256)
+    """Receive RTSP reply from the server."""
+    while True:
+        reply = self.rtpsSocket.receive(1024)
+
+        if reply:
+            self.parseRtspRely(reply)
+
+        if self.requestSent == self.TEARDOWN:
+            self.rtpsSocket.shutdown(socket.SHUT_RDWR)
+            self.rtpsSocket.close()
+            break
 
 #  Use for response message
 def parseRtspReply(self, data):
     """Parse the RTSP reply from the server.
         slpit the response into line (an array of line)"""
-    return data.split('\n')
+    lines = data.split('\n')
+    response_SeqNum = int(lines[1].split(' ')[1])
+    response_Code = int(lines[0].split(' ')[1])
 
-# Use for Rtp packet (in play)
-def parseRtpPacket(self, data):
-    """ Decode the Rtp packet
-        Change appropriate parameters
-        Return the video data"""
-    rtpPacket = RtpPacket()
-    rtpPacket.decode(data)
-    self.frameNbr = rtpPacket.seqNum()
+    if response_SeqNum == self.rtspSeq:
+        response_session = int(lines[2].split(' ')[1])
 
-    return rtpPacket.getPayload()
+        # Check case for SETUP
+        if self.sessionID == 0:
+            self.sessionId = response_session
+
+        if response_session == self.sessionId:
+            if response_Code == 200:
+                if self.requestSent == self.SETUP:
+                    self.state = self.READY
+                    self.openRtpPort()
+                if self.requestSend == self.PLAY:
+                    self.state = self.PLAYING
+                if self.requestSend == self.PAUSE:
+                    self.state = self.READY
+                    self.playEvent.set()
+                if self.requestSend == self.TEARDOWN:
+                    self.state = self.INIT
+                    self.teardownAcked = 1
 
 #  Initialize the socket
 def openRtpPort(self):
@@ -238,5 +257,13 @@ def openRtpPort(self):
 def handler(self):
     """Handler on explicitly closing the GUI window."""
     # TODO
+    self.pauseMovie()
+    if self.tkMessageBox.askyesno("Quit message", "Do you want to quit ?"):
+        self.exitClient()
+    else:
+        self.playMovie()
 
-    # auto TEARDOWN the session when the user explicily close the window -> Display a messagebox
+
+
+
+
