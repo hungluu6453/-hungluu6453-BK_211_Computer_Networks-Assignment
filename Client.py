@@ -43,33 +43,38 @@ def __init__(self, master, serveraddr, serverport, rtpport, filename):
 # THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI
 def createWidgets(self):
     """Build GUI."""
+    self.master.configure(bg='black')
     # Create Setup button
-    self.setup = Button(self.master, width=20, padx=3, pady=3)
+    self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
+    height = 2, width=20, padx=10, pady=10)
     self.setup["text"] = "Setup"
     self.setup["command"] = self.setupMovie
-    self.setup.grid(row=1, column=0, padx=2, pady=2)
-
-    # Create Play button
-    self.start = Button(self.master, width=20, padx=3, pady=3)
+    self.setup.grid(row=1, column=0, padx=10, pady=10)
+    
+    # Create Play button		
+    self.start = Button(self.master, activeforeground ="#00B49D", activebackground = "#00B49D", fg = "#00B49D", highlightbackground= "#00B49D", highlightthickness= 1,
+    height = 2, width=20, padx=10, pady=10)
     self.start["text"] = "Play"
     self.start["command"] = self.playMovie
-    self.start.grid(row=1, column=1, padx=2, pady=2)
-
-    # Create Pause button
-    self.pause = Button(self.master, width=20, padx=3, pady=3)
+    self.start.grid(row=1, column=1, padx=10, pady=10)
+    
+    # Create Pause button			
+    self.pause = Button(self.master, activeforeground = "#3CB9FC", activebackground = "#3CB9FC", fg = "#3CB9FC", highlightbackground= "#3CB9FC", highlightthickness= 1,
+    height = 2, width=20, padx=10, pady=10)
     self.pause["text"] = "Pause"
     self.pause["command"] = self.pauseMovie
-    self.pause.grid(row=1, column=2, padx=2, pady=2)
-
+    self.pause.grid(row=1, column=2, padx=10, pady=10)
+    
     # Create Teardown button
-    self.teardown = Button(self.master, width=20, padx=3, pady=3)
+    self.teardown = Button(self.master, activeforeground = "#fc7400", activebackground = "#fc7400", fg = "#fc7400", highlightbackground= "#fc7400", highlightthickness= 1,
+    height = 2, width=20, padx=10, pady=10)
     self.teardown["text"] = "Teardown"
-    self.teardown["command"] = self.exitClient
-    self.teardown.grid(row=1, column=3, padx=2, pady=2)
-
+    self.teardown["command"] =  self.exitClient
+    self.teardown.grid(row=1, column=3, padx=10, pady=10)
+    
     # Create a label to display the movie
-    self.label = Label(self.master, height=19)
-    self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=5, pady=5)
+    self.label = Label(self.master, width=90, height=30)
+    self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=10, pady=10)
 
     # Setup basic operations
     # Send request -> get response (if the command is PLAY -> there will be responses) -> Display
