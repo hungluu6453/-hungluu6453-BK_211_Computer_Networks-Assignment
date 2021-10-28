@@ -169,7 +169,7 @@ class Client:
         self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.rtspSocket.connect((self.serverAddr, self.serverPort))
-            # print("Connected successfully")
+            print("Connected successfully")
         except:
             tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
 
@@ -242,7 +242,7 @@ class Client:
         """Receive RTSP reply from the server."""
         while True:
             reply = self.rtspSocket.recv(1024)
-            # print("Receive Reply")
+            print("Receive Reply")
 
             if reply:
                 self.parseRtspReply(reply.decode("utf-8"))
