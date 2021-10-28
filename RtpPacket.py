@@ -4,16 +4,16 @@ import VideoStream
 HEADER_SIZE = 12
 
 class RtpPacket:	
-	# header = bytearray(HEADER_SIZE)
+	header = bytearray(HEADER_SIZE)
 	
 	def __init__(self):
-		self.header = bytearray(HEADER_SIZE)
+		pass
 		
 	def encode(self, version, padding, extension, cc, seqnum, marker, pt, ssrc, payload):
 		"""Encode the RTP packet with header fields and payload."""
 
 		timestamp = int(time())
-		self.header = bytearray(HEADER_SIZE)
+		header = bytearray(HEADER_SIZE)
 		#--------------
 		# TO COMPLETE
 		#--------------
@@ -29,29 +29,25 @@ class RtpPacket:
 			#Above all done in ServerWorker.py
 
 		#header[0] = version + padding + extension + cc + seqnum + marker + pt + ssrc
-		self.header[0] = version << 6
-		self.header[0] = self.header[0] | padding << 5
-		self.header[0] = self.header[0] | extension << 4
-		self.header[0] = self.header[0] | cc
-		self.header[1] = marker << 7
-		self.header[1] = self.header[1] | pt
+		header[0] = (header[0] | version << 6) & 0xC0
+		header[0] = header[0] | padding << 5
+		header[0] = header[0] | extension << 4
+		header[0] = header[0] | cc & 0x0F
+		header[1] = header[1] | marker << 7 | pt
+		header[2] = (seqnum >> 8) & 0xFF
+		header[3] = seqnum & 0xFF
 
-		self.header[2] = seqnum >> 8
-		self.header[3] = seqnum
+		header[4] = (timestamp >> 24)
+		header[5] = (timestamp >> 16) & 0xFF
+		header[6] = (timestamp >> 8) & 0xFF
+		header[7] = timestamp & 0xFF
 
-		self.header[4] = (timestamp >> 24) & 0xFF
-		self.header[5] = (timestamp >> 16) & 0xFF
-		self.header[6] = (timestamp >> 8) & 0xFF
-		self.header[7] = timestamp & 0xFF
+		header[8] = (ssrc >> 24)
+		header[9] = (ssrc >> 16) & 0xFF
+		header[10] = (ssrc >> 8) & 0xFF
+		header[11] = ssrc & 0xFF
 
-		self.header[8] = (ssrc >> 24) & 0xFF
-		self.header[9] = (ssrc >> 16) & 0xFF
-		self.header[10] = (ssrc >> 8) & 0xFF
-		self.header[11] = ssrc & 0xFF
-
-
-		# Get the payload from the argument
-		# self.payload = ...
+		self.header = header
 		self.payload = payload
 		
 	def decode(self, byteStream):
