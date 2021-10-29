@@ -1,5 +1,6 @@
 import sys
 from time import time
+import VideoStream
 HEADER_SIZE = 12
 
 class RtpPacket:	
@@ -10,8 +11,10 @@ class RtpPacket:
 		
 	def encode(self, version, padding, extension, cc, seqnum, marker, pt, ssrc, payload):
 		"""Encode the RTP packet with header fields and payload."""
+
 		timestamp = int(time())
 		header = bytearray(HEADER_SIZE)
+		
 		header[0] = (header[0] | version << 6) & 0xC0
 		header[0] = header[0] | padding << 5
 		header[0] = header[0] | extension << 4
