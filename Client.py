@@ -258,6 +258,7 @@ class Client:
     def parseRtspReply(self, data):
         """Parse the RTSP reply from the server.
             slpit the response into line (an array of line)"""
+        print("\nData received:\n" + data)
         lines = data.split('\n')
         response_SeqNum = int(lines[1].split(' ')[1])
         response_Code = int(lines[0].split(' ')[1])
