@@ -13,6 +13,7 @@ class Client:
     INIT = 0
     READY = 1
     PLAYING = 2
+    SWITCH = 3
     state = INIT
 
     SETUP = 0
@@ -22,7 +23,9 @@ class Client:
 
     # Initiation..
 
-    def __init__(self, master, serveraddr, serverport, rtpport, filename):
+    def __init__(self, master, serveraddr, serverport, rtpport):
+        # File list
+        self.fileList = ["movie.Mjpeg"]
         # Initialize the GUI
         self.master = master
         self.master.protocol("WM_DELETE_WINDOW", self.handler)
@@ -31,7 +34,7 @@ class Client:
         self.serverAddr = serveraddr
         self.serverPort = int(serverport)
         self.rtpPort = int(rtpport)
-        self.fileName = filename
+        self.fileName = ''
         # Parameters
         self.rtspSeq = 0  # CSeq
         self.sessionId = 0
@@ -46,14 +49,6 @@ class Client:
     def createWidgets(self):
         """Build GUI."""
         self.master.configure(bg='black')
-        # Create Setup button
-        self.setup = Button(self.master, activeforeground="#9D72FF", activebackground="#9D72FF", fg="#9D72FF",
-                            highlightbackground="#9D72FF", highlightthickness=1,
-                            height=2, width=20, padx=10, pady=10)
-        self.setup["text"] = "Setup"
-        self.setup["command"] = self.setupMovie
-        self.setup.grid(row=1, column=0, padx=10, pady=10)
-
         # Create Play button
         self.start = Button(self.master, activeforeground="#00B49D", activebackground="#00B49D", fg="#00B49D",
                             highlightbackground="#00B49D", highlightthickness=1,
@@ -82,15 +77,27 @@ class Client:
         self.label = Label(self.master, width=90, height=30)
         self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=10, pady=10)
 
-        # Setup basic operations
+        # Create listing panel
+        self.panel = Listbox(self.master, height=30)
+        self.panel.grid(row=0, rowspan=2, column=4, padx=10, pady=10)
+        self.panel.bind('<<ListboxSelect>>', self.switchMovie)
+        for item in range(len(self.fileList)):
+            self.panel.insert(END, self.fileList[item])
+            self.panel.itemconfig(item, bg="#bdc1d6")
+            # Setup basic operations
         # Send request -> get response (if the command is PLAY -> there will be responses) -> Display
 
-    def setupMovie(self):
+    def switchMovie(self, event):
         """Setup button handler."""
         # TODO
+        self.fileName = str(self.panel.get(ANCHOR))
         if self.state == self.INIT:
             self.sendRtspRequest(self.SETUP)
-
+            return
+        self.state = self.SWITCH
+        self.sendRtspRequest(self.TEARDOWN)
+        self.sendRtspRequest(self.SETUP)
+        self.state = self.READY
     def exitClient(self):
         """Teardown button handler."""
         # TODO
@@ -178,13 +185,13 @@ class Client:
         # -------------
         # TO COMPLETE
         # -------------
-        if requestCode == self.SETUP and self.state == self.INIT:
+        if requestCode == self.SETUP and (self.state == self.INIT or self.state == self.SWITCH):
             threading.Thread(target=self.recvRtspReply).start()
             # update RTPS sequence number
             self.rtspSeq = 1
 
             # write the RTPS request to be sent.
-            request = "SETUP " + str(self.fileName) + " RTPS/1.0\nCseq: " + str(
+            request = "SETUP " + self.fileName + " RTPS/1.0\nCseq: " + str(
                 self.rtspSeq) + "\nTransport: RTP/UDP; clent_port= " + str(self.rtpPort)
             self.rtspSocket.send(request.encode("utf-8"))
 
