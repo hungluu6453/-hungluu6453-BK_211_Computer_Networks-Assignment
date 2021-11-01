@@ -1,7 +1,7 @@
 from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
-import socket, threading, sys, traceback, os
+import socket, threading, sys, traceback, os, time
 
 from RtpPacket import RtpPacket
 
@@ -20,7 +20,16 @@ class Client:
     PLAY = 1
     PAUSE = 2
     TEARDOWN = 3
+    DESCRIBE = 4
 
+    # Use for analyze
+    startClock = 0
+    sumOfTime = 0
+    sumData = 0
+    packetLoss = 0
+    stop = True
+
+    describeState = False
     # Initiation..
 
     def __init__(self, master, serveraddr, serverport, rtpport):
@@ -73,6 +82,13 @@ class Client:
         self.teardown["command"] = self.exitClient
         self.teardown.grid(row=1, column=3, padx=10, pady=10)
 
+        #Create Describe Button
+        self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
+        height = 2, width=20, padx=10, pady=10)
+        self.setup["text"] = "Describe"
+        self.setup["command"] = self.describe
+        self.setup.grid(row=1, column=4, padx=10, pady=10)
+
         # Create a label to display the movie
         self.label = Label(self.master, width=90, height=30)
         self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=10, pady=10)
@@ -98,12 +114,26 @@ class Client:
         self.sendRtspRequest(self.TEARDOWN)
         self.sendRtspRequest(self.SETUP)
         self.state = self.READY
+
     def exitClient(self):
         """Teardown button handler."""
         # TODO
         self.sendRtspRequest(self.TEARDOWN)
-        self.master.destroy()  # Close the gui window
-        os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
+        self.master.destroy()  # Close the gui 
+        try:
+            os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
+        except:
+            print("No cache file to delete.")
+        if not self.stop:
+            self.sumOfTime += time.time() - self.startClock
+        if self.sumOfTime>0:
+            print('-'*40)
+            print("\nAnalyze Statistics:")
+            rateData = float(int(self.sumData)/int(self.sumOfTime))
+            print("\nVideo Data Rate: " + str(rateData))
+            rateLoss = float(self.packetLoss/self.frameNbr)
+            print("\nRTP Packet Loss Rate: " + str(rateLoss) + "\n")
+            print('-'*40)
 
     def pauseMovie(self):
         """Pause button handler."""
@@ -111,10 +141,16 @@ class Client:
         if self.state == self.PLAYING:
             self.sendRtspRequest(self.PAUSE)
 
+    def describe(self):
+        """Describe button handler."""
+        if self.describeState:
+            self.sendRtspRequest(self.DESCRIBE)
+
     def playMovie(self):
         """Play button handler."""
         # TODO
         if self.state == self.READY:
+            self.describeState = True
             # Create a new thread to listen for RTP packets
             threading.Thread(target=self.listenRtp).start()
             self.playEvent = threading.Event()
@@ -125,6 +161,8 @@ class Client:
     #
     def listenRtp(self):
         """Listen for RTP packets."""
+        self.startClock = time.time()
+        self.stop = False
         # TODO
         while True:
             try:
@@ -132,24 +170,37 @@ class Client:
                 if data:
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
-
+                    self.sumData += len(data)
                     curFrameNbr = rtpPacket.seqNum()
                     print("Current Seq Num: " + str(curFrameNbr))
+                    try:
+                        if (self.frameNbr + 1) != curFrameNbr:
+                            self.packetLoss += 1
+                            print("\nFound the Packet Loss")
+                    except:
+                        print("segNum() error\n")
+                        traceback.print_exc(file=sys.stdout)
 
-                    if curFrameNbr > self.frameNbr:  # Discard the late packet
+                    if curFrameNbr > self.frameNbr: #Discard the late packet
                         self.frameNbr = curFrameNbr
                         self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
             except:
-                # stop listening upon requesting PAUSE or TEARDOWN
+                self.sumOfTime += time.time() - self.startClock
+                self.stop = True
+                #stop listening upon requesting PAUSE or TEARDOWN
                 if self.playEvent.isSet():
                     break
 
-                # receive ACK for TEARDOWN request,
-                # close the RTP socket
+                #receive ACK for TEARDOWN request,
+                #close the RTP socket
                 if self.teardownAcked == 1:
-                    self.rtpSocket.shutdown(socket.SHUT_RDWR)
-                    self.rtpSocket.close()
-                    break
+                    try:
+                        self.rtpSocket.shutdown(socket.SHUT_RDWR)
+                        self.rtpSocket.close()
+                    finally:
+                        break
+        self.sumOfTime += time.time() - self.startClock
+        self.stop = True
 
     def writeFrame(self, data):
         """Write the received frame to a temp image file. Return the image file."""
@@ -237,6 +288,17 @@ class Client:
             # Keep track of the sent request.
             # self.requestSent = ...
             self.requestSent = self.TEARDOWN
+
+        elif requestCode == self.DESCRIBE:
+            # Update RTSP sequence number.
+            # ...
+            self.rtspSeq += 1
+            # Write the RTSP request to be sent.
+            # request = ...
+            request = "DESCRIBE " + str(self.fileName) + " RTSP/1.0\nCSeq: " + str(self.rtspSeq) + "\nSession: " + str(self.sessionId)
+            self.rtspSocket.send(request.encode("utf-8"))
+            self.requestSent = self.DESCRIBE
+
         else:
             return
 
