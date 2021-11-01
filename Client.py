@@ -96,7 +96,10 @@ class Client:
         # TODO
         self.sendRtspRequest(self.TEARDOWN)
         self.master.destroy() # Close the gui window
-        os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
+        try:
+            os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
+        except:
+            print("Video was not loaded.")
 
 
     def pauseMovie(self):
