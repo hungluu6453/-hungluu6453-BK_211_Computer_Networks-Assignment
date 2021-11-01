@@ -99,7 +99,8 @@ class Client:
         try:
             os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
         except:
-            print("There is no cache to remove")
+            print("Video was not loaded.")
+
 
     def pauseMovie(self):
         """Pause button handler."""
