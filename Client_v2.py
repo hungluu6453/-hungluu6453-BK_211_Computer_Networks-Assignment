@@ -87,15 +87,15 @@ class Client:
         height = 2, width=20, padx=10, pady=10)
         self.setup["text"] = "Describe"
         self.setup["command"] = self.describe
-        self.setup.grid(row=1, column=3, padx=10, pady=10)
+        self.setup.grid(row=1, column=4, padx=10, pady=10)
 
         # Create a label to display the movie
         self.label = Label(self.master, width=90, height=30)
-        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=10, pady=10)
+        self.label.grid(row=0, column=0, columnspan=5, sticky=W + E + N + S, padx=10, pady=10)
 
         # Create listing panel
         self.panel = Listbox(self.master, height=30)
-        self.panel.grid(row=0, rowspan=2, column=4, padx=10, pady=10)
+        self.panel.grid(row=0, rowspan=2, column=5, padx=10, pady=10)
         self.panel.bind('<<ListboxSelect>>', self.switchMovie)
         for item in range(len(self.fileList)):
             self.panel.insert(END, self.fileList[item])
