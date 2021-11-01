@@ -87,7 +87,7 @@ class Client:
         height = 2, width=20, padx=10, pady=10)
         self.setup["text"] = "Describe"
         self.setup["command"] = self.describe
-        self.setup.grid(row=1, column=4, padx=10, pady=10)
+        self.setup.grid(row=1, column=3, padx=10, pady=10)
 
         # Create a label to display the movie
         self.label = Label(self.master, width=90, height=30)
