@@ -64,7 +64,7 @@ class Client:
                             height=2, width=20, padx=10, pady=10)
         self.start["text"] = "Play"
         self.start["command"] = self.playMovie
-        self.start.grid(row=1, column=1, padx=10, pady=10)
+        self.start.grid(row=2, column=1, padx=10, pady=2)
 
         # Create Pause button
         self.pause = Button(self.master, activeforeground="#3CB9FC", activebackground="#3CB9FC", fg="#3CB9FC",
@@ -72,7 +72,7 @@ class Client:
                             height=2, width=20, padx=10, pady=10)
         self.pause["text"] = "Pause"
         self.pause["command"] = self.pauseMovie
-        self.pause.grid(row=1, column=2, padx=10, pady=10)
+        self.pause.grid(row=2, column=2, padx=10, pady=2)
 
         # Create Teardown button
         self.teardown = Button(self.master, activeforeground="#fc7400", activebackground="#fc7400", fg="#fc7400",
@@ -80,22 +80,27 @@ class Client:
                                height=2, width=20, padx=10, pady=10)
         self.teardown["text"] = "Teardown"
         self.teardown["command"] = self.exitClient
-        self.teardown.grid(row=1, column=3, padx=10, pady=10)
+        self.teardown.grid(row=2, column=3, padx=10, pady=2)
 
         #Create Describe Button
         self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
         height = 2, width=20, padx=10, pady=10)
         self.setup["text"] = "Describe"
         self.setup["command"] = self.describe
-        self.setup.grid(row=1, column=0, padx=10, pady=10)
+        self.setup.grid(row=2, column=0, padx=10, pady=2)
 
         # Create a label to display the movie
         self.label = Label(self.master, width=90, height=30)
-        self.label.grid(row=0, column=0, columnspan=5, sticky=W + E + N + S, padx=10, pady=10)
+        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=10, pady=10)
+
+        # Create status bar for time line 
+        self.status_bar = Label(self.master, text = "test", bd = 1, relief=GROOVE, anchor = E)
+        self.status_bar.grid(row=1, columnspan=4, sticky=W + E + N + S, padx=10, pady=5)
+
 
         # Create listing panel
         self.panel = Listbox(self.master, height=30)
-        self.panel.grid(row=0, rowspan=2, column=5, padx=10, pady=10)
+        self.panel.grid(row=0, rowspan=2, column=4, padx=10, pady=10)
         self.panel.bind('<<ListboxSelect>>', self.switchMovie)
         for item in range(len(self.fileList)):
             self.panel.insert(END, self.fileList[item])
