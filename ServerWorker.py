@@ -166,7 +166,7 @@ class ServerWorker:
 
 	def describe(self):
 		seq1 = "\nv=0\nm=video " + str(self.clientInfo['rtpPort']) + " RTP/AVP 26\na=control:streamid=" \
-			 + str(self.clientInfo['session']) +"\na=mimetype:string;\"video/Mjpeg\"\n"
+			 + str(self.clientInfo['session'])
 		seq2 = "Describe-Base: " + str(self.clientInfo['videoStream'].filename) + "\nDescribe-Length: " \
 			 + str(len(seq1)) + "\n"
 		return seq1 + seq2

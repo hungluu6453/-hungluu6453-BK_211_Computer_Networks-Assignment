@@ -34,7 +34,7 @@ class Client:
 
     def __init__(self, master, serveraddr, serverport, rtpport):
         # File list
-        self.fileList = ["movie.Mjpeg"]
+        self.fileList = ["movie.Mjpeg", "movie2.Mjpeg"]
         # Initialize the GUI
         self.master = master
         self.master.protocol("WM_DELETE_WINDOW", self.handler)
@@ -64,7 +64,7 @@ class Client:
                             height=2, width=20, padx=10, pady=10)
         self.start["text"] = "Play"
         self.start["command"] = self.playMovie
-        self.start.grid(row=1, column=1, padx=10, pady=10)
+        self.start.grid(row=1, column=0, padx=10, pady=10)
 
         # Create Pause button
         self.pause = Button(self.master, activeforeground="#3CB9FC", activebackground="#3CB9FC", fg="#3CB9FC",
@@ -72,7 +72,7 @@ class Client:
                             height=2, width=20, padx=10, pady=10)
         self.pause["text"] = "Pause"
         self.pause["command"] = self.pauseMovie
-        self.pause.grid(row=1, column=2, padx=10, pady=10)
+        self.pause.grid(row=1, column=1, padx=10, pady=10)
 
         # Create Teardown button
         self.teardown = Button(self.master, activeforeground="#fc7400", activebackground="#fc7400", fg="#fc7400",
@@ -80,14 +80,14 @@ class Client:
                                height=2, width=20, padx=10, pady=10)
         self.teardown["text"] = "Teardown"
         self.teardown["command"] = self.exitClient
-        self.teardown.grid(row=1, column=3, padx=10, pady=10)
+        self.teardown.grid(row=1, column=2, padx=10, pady=10)
 
         #Create Describe Button
         self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
         height = 2, width=20, padx=10, pady=10)
         self.setup["text"] = "Describe"
         self.setup["command"] = self.describe
-        self.setup.grid(row=1, column=0, padx=10, pady=10)
+        self.setup.grid(row=1, column=3, padx=10, pady=10)
 
         # Create a label to display the movie
         self.label = Label(self.master, width=90, height=30)
@@ -326,6 +326,7 @@ class Client:
     def parseRtspReply(self, data):
         """Parse the RTSP reply from the server.
             slpit the response into line (an array of line)"""
+        print("\nData received:\n" + data)
         lines = data.split('\n')
         response_SeqNum = int(lines[1].split(' ')[1])
         response_Code = int(lines[0].split(' ')[1])
