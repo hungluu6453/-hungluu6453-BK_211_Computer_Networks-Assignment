@@ -52,6 +52,9 @@ class Client:
         self.connectToServer()
         self.frameNbr = 0  # seqnum of Rtp packet
         self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.timeInterval = 0
+        self.isUpTime = 1
+        self.isLost = 0
 
     # THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI
 
@@ -61,62 +64,46 @@ class Client:
         # Create Play button
         self.start = Button(self.master, activeforeground="#00B49D", activebackground="#00B49D", fg="#00B49D",
                             highlightbackground="#00B49D", highlightthickness=1,
-                            height=2, width=20, padx=10, pady=10)
+                            height=2, width=12, padx=5, pady=10)
         self.start["text"] = "Play"
         self.start["command"] = self.playMovie
-<<<<<<< HEAD
-        self.start.grid(row=2, column=1, padx=10, pady=2)
-=======
-        self.start.grid(row=1, column=0, padx=10, pady=10)
->>>>>>> af4801fb1c4055c818476650e782d0b2a0654bf9
+        self.start.grid(row=2, column=1, padx=5, pady=0)
 
         # Create Pause button
         self.pause = Button(self.master, activeforeground="#3CB9FC", activebackground="#3CB9FC", fg="#3CB9FC",
                             highlightbackground="#3CB9FC", highlightthickness=1,
-                            height=2, width=20, padx=10, pady=10)
+                            height=2, width=12, padx=5, pady=10)
         self.pause["text"] = "Pause"
         self.pause["command"] = self.pauseMovie
-<<<<<<< HEAD
-        self.pause.grid(row=2, column=2, padx=10, pady=2)
-=======
-        self.pause.grid(row=1, column=1, padx=10, pady=10)
->>>>>>> af4801fb1c4055c818476650e782d0b2a0654bf9
+        self.pause.grid(row=2, column=2, padx=5, pady=0)
 
         # Create Teardown button
         self.teardown = Button(self.master, activeforeground="#fc7400", activebackground="#fc7400", fg="#fc7400",
                                highlightbackground="#fc7400", highlightthickness=1,
-                               height=2, width=20, padx=10, pady=10)
+                               height=2, width=12, padx=5, pady=10)
         self.teardown["text"] = "Teardown"
         self.teardown["command"] = self.exitClient
-<<<<<<< HEAD
-        self.teardown.grid(row=2, column=3, padx=10, pady=2)
-=======
-        self.teardown.grid(row=1, column=2, padx=10, pady=10)
->>>>>>> af4801fb1c4055c818476650e782d0b2a0654bf9
+        self.teardown.grid(row=2, column=3, padx=5, pady=0)
 
         #Create Describe Button
         self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
-        height = 2, width=20, padx=10, pady=10)
+        height = 2, width=12, padx=5, pady=10)
         self.setup["text"] = "Describe"
         self.setup["command"] = self.describe
-<<<<<<< HEAD
-        self.setup.grid(row=2, column=0, padx=10, pady=2)
-=======
-        self.setup.grid(row=1, column=3, padx=10, pady=10)
->>>>>>> af4801fb1c4055c818476650e782d0b2a0654bf9
+        self.setup.grid(row=2, column=0, padx=5, pady=0)
 
         # Create a label to display the movie
-        self.label = Label(self.master, width=90, height=30)
-        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=10, pady=10)
+        self.label = Label(self.master, width=60, height=20)
+        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=5, pady=2)
 
         # Create status bar for time line 
-        self.status_bar = Label(self.master, text = "test", bd = 1, relief=GROOVE, anchor = E)
-        self.status_bar.grid(row=1, columnspan=4, sticky=W + E + N + S, padx=10, pady=5)
+        self.status_bar = Label(self.master, text = '--:--', width=60, height=1, bd = 1, relief=GROOVE, anchor = E)
+        self.status_bar.grid(row=1, columnspan=4, sticky=W + E + N + S, padx=5, pady=2)
 
 
         # Create listing panel
-        self.panel = Listbox(self.master, height=30)
-        self.panel.grid(row=0, rowspan=2, column=4, padx=10, pady=10)
+        self.panel = Listbox(self.master, height=26)
+        self.panel.grid(row=0, rowspan=3, column=4, padx=1, pady=1)
         self.panel.bind('<<ListboxSelect>>', self.switchMovie)
         for item in range(len(self.fileList)):
             self.panel.insert(END, self.fileList[item])
@@ -129,8 +116,10 @@ class Client:
         # TODO
         self.fileName = str(self.panel.get(ANCHOR))
         if self.state == self.INIT:
+            self.timeInterval = 0
             self.sendRtspRequest(self.SETUP)
             return
+        self.timeInterval = 0
         self.state = self.SWITCH
         self.sendRtspRequest(self.TEARDOWN)
         self.sendRtspRequest(self.SETUP)
@@ -161,6 +150,7 @@ class Client:
         # TODO
         if self.state == self.PLAYING:
             self.sendRtspRequest(self.PAUSE)
+            self.isUpTime = 0
 
     def describe(self):
         """Describe button handler."""
@@ -177,6 +167,21 @@ class Client:
             self.playEvent = threading.Event()
             self.playEvent.clear()
             self.sendRtspRequest(self.PLAY)
+            self.timeLastPlay = time.time()
+            self.updateBar()
+
+
+
+    #for display Current time
+    def updateBar(self):
+        self.converted_timeInterval = time.strftime('%M:%S', time.gmtime(self.timeInterval))
+        self.status_bar.config(text=self.converted_timeInterval)
+        if self.isUpTime == 1:
+            self.temp = time.time()
+            self.timeInterval += self.temp - self.timeLastPlay
+            self.timeLastPlay = self.temp
+        self.status_bar.after(1, self.updateBar)
+        
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #
@@ -189,6 +194,11 @@ class Client:
             try:
                 data = self.rtpSocket.recv(20480)
                 if data:
+                    print("Data received") 
+                    self.isUpTime = 1
+                    if self.isLost == 1:
+                        self.timeLastPlay = time.time()
+                        self.isLost = 0
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
                     self.sumData += len(data)
@@ -205,7 +215,11 @@ class Client:
                     if curFrameNbr > self.frameNbr: #Discard the late packet
                         self.frameNbr = curFrameNbr
                         self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+                      
             except:
+                print("No data received")
+                self.isUpTime = 0
+                self.isLost = 1
                 self.sumOfTime += time.time() - self.startClock
                 self.stop = True
                 #stop listening upon requesting PAUSE or TEARDOWN
