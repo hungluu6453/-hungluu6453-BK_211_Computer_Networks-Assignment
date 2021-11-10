@@ -58,6 +58,7 @@ class ServerWorker:
 				
 				try:
 					self.clientInfo['videoStream'] = VideoStream(filename)
+					print("Total Frame: " + str(self.clientInfo['videoStream'].totalFrame()))
 					self.state = self.READY
 				except IOError:
 					self.replyRtsp(self.FILE_NOT_FOUND_404, seq[1])
@@ -113,8 +114,8 @@ class ServerWorker:
 	def sendRtp(self):
 		"""Send RTP packets over UDP."""
 		while True:
-			self.clientInfo['event'].wait(0.05) 
-
+			self.clientInfo['event'].wait(0.05) #OG 0.05
+			
 			# Stop sending if request is PAUSE or TEARDOWN
 			if self.clientInfo['event'].isSet():
 				break 
@@ -166,8 +167,8 @@ class ServerWorker:
 
 	def describe(self):
 		seq1 = "\nv=0\nm=video " + str(self.clientInfo['rtpPort']) + " RTP/AVP 26\na=control:streamid=" \
-			 + str(self.clientInfo['session'])
-		seq2 = "Describe-Base: " + str(self.clientInfo['videoStream'].filename) + "\nDescribe-Length: " \
+			 + str(self.clientInfo['session']) + "\na=mimetype:string;\"video/Mjpeg\"\n"
+		seq2 = "\nDescribe-Base: " + str(self.clientInfo['videoStream'].filename) + "\nDescribe-Length: " \
 			 + str(len(seq1)) + "\n"
 		return seq1 + seq2
 

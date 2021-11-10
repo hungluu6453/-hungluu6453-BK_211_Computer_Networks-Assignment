@@ -174,12 +174,10 @@ class Client:
 
     #for display Current time
     def updateBar(self):
-        self.converted_timeInterval = time.strftime('%M:%S', time.gmtime(self.timeInterval))
-        self.status_bar.config(text=self.converted_timeInterval)
-        if self.isUpTime == 1:
-            self.temp = time.time()
-            self.timeInterval += self.temp - self.timeLastPlay
-            self.timeLastPlay = self.temp
+        self.converted_timeInterval = time.strftime('%M:%S', time.gmtime(self.frameNbr * 0.05))
+        self.converted_timeLength = time.strftime('%M:%S', time.gmtime(500 * 0.05))
+        self.status_bar.config(text= self.converted_timeInterval + " / " + self.converted_timeLength)
+        
         self.status_bar.after(1, self.updateBar)
         
 
@@ -193,12 +191,7 @@ class Client:
         while True:
             try:
                 data = self.rtpSocket.recv(20480)
-                if data:
-                    print("Data received") 
-                    self.isUpTime = 1
-                    if self.isLost == 1:
-                        self.timeLastPlay = time.time()
-                        self.isLost = 0
+                if data:                    
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
                     self.sumData += len(data)
@@ -218,8 +211,6 @@ class Client:
                       
             except:
                 print("No data received")
-                self.isUpTime = 0
-                self.isLost = 1
                 self.sumOfTime += time.time() - self.startClock
                 self.stop = True
                 #stop listening upon requesting PAUSE or TEARDOWN
@@ -246,6 +237,7 @@ class Client:
         file.close()
 
         return cachename
+
 
     def updateMovie(self, imageFile):
         """Update the image file as video frame in the GUI."""
