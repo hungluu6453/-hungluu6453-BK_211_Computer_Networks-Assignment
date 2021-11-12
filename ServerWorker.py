@@ -19,7 +19,9 @@ class ServerWorker:
 	OK_200 = 0
 	FILE_NOT_FOUND_404 = 1
 	CON_ERR_500 = 2
-	
+
+	Played = 0
+
 	clientInfo = {}
 	
 	def __init__(self, clientInfo):
@@ -71,11 +73,14 @@ class ServerWorker:
 				
 				# Get the RTP/UDP port from the last line
 				self.clientInfo['rtpPort'] = request[2].split(' ')[3]
+
+
 		
 		# Process PLAY request 		
 		elif requestType == self.PLAY:
 			if self.state == self.READY:
 				print("processing PLAY\n")
+				self.Played = 1
 				self.state = self.PLAYING
 				
 				# Create a new socket for RTP/UDP
@@ -102,12 +107,15 @@ class ServerWorker:
 		elif requestType == self.TEARDOWN:
 			print("processing TEARDOWN\n")
 
-			self.clientInfo['event'].set()
+			if self.Played != 0:
+				self.clientInfo['event'].set()
+				self.clientInfo['rtpSocket'].close()
 			
 			self.replyRtsp(self.OK_200, seq[1])
 			
-			# Close the RTP socket
-			self.clientInfo['rtpSocket'].close()
+			self.state = self.INIT
+			self.Played = 0
+
 		elif requestType == self.DESCRIBE:
 			self.replyDescibe(self.OK_200,seq[1])	
 			
@@ -127,6 +135,7 @@ class ServerWorker:
 					address = self.clientInfo['rtspSocket'][1][0]
 					port = int(self.clientInfo['rtpPort'])
 					self.clientInfo['rtpSocket'].sendto(self.makeRtp(data, frameNumber),(address,port))
+					print("Sent frame")
 				except:
 					print("Connection Error")
 					#print('-'*60)

@@ -10,11 +10,10 @@ CACHE_FILE_EXT = ".jpg"
 
 
 class Client:
-    INIT = 0
+    SWITCH = 0
     READY = 1
     PLAYING = 2
-    SWITCH = 3
-    state = INIT
+    state = SWITCH
 
     SETUP = 0
     PLAY = 1
@@ -49,9 +48,11 @@ class Client:
         self.sessionId = 0
         self.requestSent = -1
         self.teardownAcked = 0
-        self.connectToServer()
+        self.RtpThread = 0
+        self.RtspThread = 0
+
         self.frameNbr = 0  # seqnum of Rtp packet
-        self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
         self.timeInterval = 0
         self.isUpTime = 1
         self.isLost = 0
@@ -81,8 +82,8 @@ class Client:
         self.teardown = Button(self.master, activeforeground="#fc7400", activebackground="#fc7400", fg="#fc7400",
                                highlightbackground="#fc7400", highlightthickness=1,
                                height=2, width=12, padx=5, pady=10)
-        self.teardown["text"] = "Teardown"
-        self.teardown["command"] = self.exitClient
+        self.teardown["text"] = "Stop"
+        self.teardown["command"] = self.stopMovie
         self.teardown.grid(row=2, column=3, padx=5, pady=0)
 
         #Create Describe Button
@@ -115,35 +116,25 @@ class Client:
         """Setup button handler."""
         # TODO
         self.fileName = str(self.panel.get(ANCHOR))
-        if self.state == self.INIT:
-            self.timeInterval = 0
-            self.sendRtspRequest(self.SETUP)
-            return
+
         self.timeInterval = 0
-        self.state = self.SWITCH
-        self.sendRtspRequest(self.TEARDOWN)
+
+        # wait to setup
+        self.stopMovie()
+        while True:
+            if self.state == self.SWITCH and self.teardownAcked == 0:
+                break
         self.sendRtspRequest(self.SETUP)
         self.state = self.READY
 
     def exitClient(self):
         """Teardown button handler."""
         # TODO
-        self.sendRtspRequest(self.TEARDOWN)
-        self.master.destroy()  # Close the gui 
-        try:
-            os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
-        except:
-            print("No cache file to delete.")
-        if not self.stop:
-            self.sumOfTime += time.time() - self.startClock
-        if self.sumOfTime>0:
-            print('-'*40)
-            print("\nAnalyze Statistics:")
-            rateData = float(int(self.sumData)/int(self.sumOfTime))
-            print("\nVideo Data Rate: " + str(rateData))
-            rateLoss = float(self.packetLoss/self.frameNbr)
-            print("\nRTP Packet Loss Rate: " + str(rateLoss) + "\n")
-            print('-'*40)
+        if self.state != self.SWITCH:
+            self.sendRtspRequest(self.TEARDOWN)
+
+        self.master.destroy()  # Close the gui
+
 
     def pauseMovie(self):
         """Pause button handler."""
@@ -151,6 +142,10 @@ class Client:
         if self.state == self.PLAYING:
             self.sendRtspRequest(self.PAUSE)
             self.isUpTime = 0
+
+    def stopMovie(self):
+        if self.state != self.SWITCH:
+            self.sendRtspRequest(self.TEARDOWN)
 
     def describe(self):
         """Describe button handler."""
@@ -191,7 +186,9 @@ class Client:
         while True:
             try:
                 data = self.rtpSocket.recv(20480)
-                if data:                    
+                if data == 0:
+                    print("No frame received")
+                if data:
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
                     self.sumData += len(data)
@@ -210,21 +207,23 @@ class Client:
                         self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
                       
             except:
-                print("No data received")
+                #print("No data received")
                 self.sumOfTime += time.time() - self.startClock
                 self.stop = True
-                #stop listening upon requesting PAUSE or TEARDOWN
-                if self.playEvent.isSet():
-                    break
 
-                #receive ACK for TEARDOWN request,
-                #close the RTP socket
+                # receive ACK for TEARDOWN request,
+                # close the RTP socket
                 if self.teardownAcked == 1:
                     try:
                         self.rtpSocket.shutdown(socket.SHUT_RDWR)
                         self.rtpSocket.close()
+                        self.teardownAcked = 0
                     finally:
                         break
+
+                #stop listening upon requesting PAUSE or TEARDOWN
+                if self.playEvent.isSet():
+                    break
         self.sumOfTime += time.time() - self.startClock
         self.stop = True
 
@@ -263,7 +262,8 @@ class Client:
         # -------------
         # TO COMPLETE
         # -------------
-        if requestCode == self.SETUP and (self.state == self.INIT or self.state == self.SWITCH):
+        if requestCode == self.SETUP and self.state == self.SWITCH:
+            self.connectToServer()
             threading.Thread(target=self.recvRtspReply).start()
             # update RTPS sequence number
             self.rtspSeq = 1
@@ -303,7 +303,7 @@ class Client:
             self.requestSent = self.PAUSE
 
         # TEARDOWN request
-        elif requestCode == self.TEARDOWN and not self.state == self.INIT:
+        elif requestCode == self.TEARDOWN:
             # Update RTSP sequence number.
             # ...
             self.rtspSeq += 1
@@ -338,14 +338,35 @@ class Client:
         """Receive RTSP reply from the server."""
         while True:
             reply = self.rtspSocket.recv(1024)
-            print("Receive Reply")
 
             if reply:
+                print("\nReceive Reply")
                 self.parseRtspReply(reply.decode("utf-8"))
 
             if self.requestSent == self.TEARDOWN:
                 self.rtspSocket.shutdown(socket.SHUT_RDWR)
                 self.rtspSocket.close()
+
+                if not self.stop:
+                    self.sumOfTime += time.time() - self.startClock
+                if self.sumOfTime > 0:
+                    print('-' * 40)
+                    print("\nAnalyze Statistics:")
+                    print("\nTotal time: " + str(self.sumOfTime))
+                    rateData = float(int(self.sumData) / int(self.sumOfTime))
+                    print("\nVideo Data Rate: " + str(rateData))
+                    rateLoss = float(self.packetLoss / self.frameNbr)
+                    print("\nRTP Packet Loss Rate: " + str(rateLoss) + "\n")
+                    print('-' * 40)
+
+                self.frameNbr = 0
+
+                try:
+                    os.remove(
+                        CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
+                except:
+                    print("No cache file to delete.")
+
                 break
 
     #  Use for response message
@@ -362,7 +383,7 @@ class Client:
             response_session = int(lines[2].split(' ')[1])
 
             # Check case for SETUP
-            if self.sessionId == 0:
+            if self.sessionId == 0 or self.sessionId != response_session:
                 self.sessionId = response_session
 
             if response_session == self.sessionId:
@@ -376,13 +397,14 @@ class Client:
                         self.state = self.READY
                         self.playEvent.set()
                     if self.requestSent == self.TEARDOWN:
-                        self.state = self.INIT
+                        self.state = self.SWITCH
                         self.teardownAcked = 1
 
     #  Initialize the socket
 
     def openRtpPort(self):
         """Open RTP socket binded to a specified port."""
+        self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rtpSocket.settimeout(0.5)
 
         try:
@@ -400,4 +422,6 @@ class Client:
         else:
             self.playMovie()
 
-    #helloo
+    #python Server.py 554
+    #python ClientLauncherv2.py 192.168.1.17 554 888
+    #python ClientLauncher.py 192.168.1.17 554 888 movie.Mjpeg

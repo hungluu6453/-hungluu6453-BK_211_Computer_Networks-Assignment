@@ -245,9 +245,9 @@ class Client:
         """Receive RTSP reply from the server."""
         while True:
             reply = self.rtspSocket.recv(1024)
-            print("Receive Reply")
 
             if reply:
+                print("Receive Reply")
                 self.parseRtspReply(reply.decode("utf-8"))
 
             if self.requestSent == self.TEARDOWN:
