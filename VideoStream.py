@@ -37,7 +37,7 @@ class VideoStream:
 			if dataTempContent:
 				totalframeNum += 1
 			dataTemp = tempFile.read(5)
-		return totalframeNum
+		return int(totalframeNum)
 		
 	def frameNbr(self):
 		"""Get frame number."""

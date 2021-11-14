@@ -127,6 +127,7 @@ class Client:
         while True:
             try:
                 data = self.rtpSocket.recv(20480)
+                print("Received Data")
                 if data:
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
@@ -139,13 +140,15 @@ class Client:
                         self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
             except:
                 #stop listening upon requesting PAUSE or TEARDOWN
+                print("No data received")
                 if self.playEvent.isSet():
                     break
 
                 #receive ACK for TEARDOWN request,
                 #close the RTP socket
                 if self.teardownAcked == 1:
-                    self.rtpSocket.shutdown(socket.SHUT_RDWR)
+                    print("Close RTP")
+                    #self.rtpSocket.shutdown(socket.SHUT_RDWR)
                     self.rtpSocket.close()
                     break
 
@@ -168,7 +171,7 @@ class Client:
 
     def connectToServer(self):
         """Connect to the Server. Start a new RTSP/TCP session."""
-    # TODO
+        # TODO
         self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.rtspSocket.connect((self.serverAddr, self.serverPort))
