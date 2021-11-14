@@ -137,19 +137,19 @@ class ServerWorker:
 			data = self.clientInfo['videoStream'].nextFrame()
 			if data: 
 				frameNumber = self.clientInfo['videoStream'].frameNbr()
-				#try:
-				address = self.clientInfo['rtspSocket'][1][0]
-				port = int(self.clientInfo['rtpPort'])
-				print (str(address) +' + '+str(port))
-				self.clientInfo['rtpSocket'].sendto(self.makeRtp(data, frameNumber),(address,port))
-				print("Sent frame")
-				if frameNumber == self.totalFrame:
-					print ("End of movie.")
-					self.clientInfo['videoStream'] = VideoStream(self.filename)
-					self.clientInfo["rtpSocket"].close()
-					break 
-				#except:
-					#print("Connection Error")
+				try:
+					address = self.clientInfo['rtspSocket'][1][0]
+					port = int(self.clientInfo['rtpPort'])
+					print (str(address) +' + '+str(port))
+					self.clientInfo['rtpSocket'].sendto(self.makeRtp(data, frameNumber),(address,port))
+					print("Sent frame")
+					if frameNumber == self.totalFrame:
+						print ("End of movie.")
+						self.clientInfo['videoStream'] = VideoStream(self.filename)
+						self.clientInfo["rtpSocket"].close()
+						break 
+				except:
+					print("Connection Error")
 					#print('-'*60)
 					#traceback.print_exc(file=sys.stdout)
 					#print('-'*60)

@@ -69,45 +69,49 @@ class Client:
         # Create Play button
         self.start = Button(self.master, activeforeground="#00B49D", activebackground="#00B49D", fg="#00B49D",
                             highlightbackground="#00B49D", highlightthickness=1,
-                            height=3, width=10, padx=8, pady=20)
+                            height=3, width=10, padx=8, pady=10)
         self.start["text"] = "Play"
         self.start["command"] = self.playMovie
-        self.start.grid(row=2, column=1, padx=5, pady=0)
+        self.start.grid(row=3, column=1, padx=5, pady=0)
 
         # Create Pause button
         self.pause = Button(self.master, activeforeground="#3CB9FC", activebackground="#3CB9FC", fg="#3CB9FC",
                             highlightbackground="#3CB9FC", highlightthickness=1,
-                            height=3, width=10, padx=8, pady=20)
+                            height=3, width=10, padx=8, pady=10)
         self.pause["text"] = "Pause"
         self.pause["command"] = self.pauseMovie
-        self.pause.grid(row=2, column=2, padx=5, pady=0)
+        self.pause.grid(row=3, column=2, padx=5, pady=0)
 
         # Create Teardown button
         self.teardown = Button(self.master, activeforeground="#fc7400", activebackground="#fc7400", fg="#fc7400",
                                highlightbackground="#fc7400", highlightthickness=1,
-                               height=3, width=10, padx=8, pady=20)
+                               height=3, width=10, padx=8, pady=10)
         self.teardown["text"] = "Stop"
         self.teardown["command"] = self.stopMovie
-        self.teardown.grid(row=2, column=3, padx=5, pady=0)
+        self.teardown.grid(row=3, column=3, padx=5, pady=0)
 
         #Create Describe Button
         self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
-        height=3, width=10, padx=8, pady=15)
+                            height=3, width=10, padx=8, pady=10)
         self.setup["text"] = "Describe"
         self.setup["command"] = self.describe
-        self.setup.grid(row=2, column=0, padx=5, pady=0)
+        self.setup.grid(row=3, column=0, padx=5, pady=0)
 
         # Create a label to display the movie
         self.label = Label(self.master, width=60, height=20)
-        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=5, pady=2)
+        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=1, pady=1)
 
         # Create status bar for time line 
-        self.status_bar = Label(self.master, text = '--/--', width=60, height=1, bd = 1, relief=GROOVE, anchor = E)
-        self.status_bar.grid(row=1, columnspan=4, sticky=W + E, padx=1, pady=1)
+        self.status_bar = Label(self.master, text = '--/--', width=60, height=1, bd = 1, relief=GROOVE)
+        self.status_bar.grid(row=2, columnspan=4, sticky=W + E, padx=1, pady=1)
+
+        #Create slider for video
+        self.progress_slider = Scale(self.master, from_=0, to=0, length=60, bd = 5, showvalue=0, sliderlength = 25, troughcolor = '#FFBF01', orient="horizontal")
+        self.progress_slider.grid(row=1, columnspan=4, sticky=W + E, padx=1, pady=1)
 
         # Create desciption for GUI
         self.description_gui = Label(self.master, text = '(^0-0^)', width=28, height=8, bd = 1, relief=GROOVE)
-        self.description_gui.grid(row=1, column=4, rowspan=2, sticky=W + E + N + S, padx=1, pady=1)
+        self.description_gui.grid(row=1, column=4, rowspan=3, sticky=W + E + N + S, padx=1, pady=1)
 
 
         # Create listing panel
@@ -143,8 +147,9 @@ class Client:
         """Teardown button handler."""
         # TODO
         if self.state != self.SWITCH:
-            #print ("Run TEARDOWN")
             self.sendRtspRequest(self.TEARDOWN)
+        
+        print ("Close GUI")
         self.master.destroy()  # Close the gui
 
 
@@ -170,7 +175,8 @@ class Client:
         # TODO
         if self.state == self.READY:
             # Create a new thread to listen for RTP packets
-            threading.Thread(target=self.listenRtp).start()
+            self.listenThread = threading.Thread(target=self.listenRtp)
+            self.listenThread.start()
             self.playEvent = threading.Event()
             self.playEvent.clear()
             self.sendRtspRequest(self.PLAY)
@@ -180,6 +186,7 @@ class Client:
     def updateBar(self):
         self.converted_timeInterval = time.strftime('%M:%S', time.gmtime(self.frameNbr * self.TPF))
         self.converted_timeLength = time.strftime('%M:%S', time.gmtime(self.totalFrame * self.TPF))
+        self.progress_slider.set(self.frameNbr)
         self.status_bar.config(text= self.converted_timeInterval + " / " + self.converted_timeLength)
         
         #self.status_bar.after(1, self.updateBar)
@@ -220,6 +227,7 @@ class Client:
                       
             except:
                 print("No data received")
+                self.progress_slider.set(self.frameNbr)
                 self.sumOfTime += time.time() - self.startClock
                 self.stop = True
 
@@ -241,6 +249,7 @@ class Client:
                     break
         self.sumOfTime += time.time() - self.startClock
         self.stop = True
+        print("Close listenRTP")
 
     def writeFrame(self, data):
         """Write the received frame to a temp image file. Return the image file."""
@@ -293,6 +302,11 @@ class Client:
             self.isNewMovie = False
             self.description_gui.config(text= '(^o_o^)')
             self.status_bar.config(text= "--/--" )
+            self.progress_slider.set(0)
+            
+            photo = ImageTk.PhotoImage(Image.open('init.jpg'))
+            self.label.configure(image=photo, height = 288) #OG: height = 288
+            self.label.image = photo
 
             # write the RTPS request to be sent.
             request = "SETUP " + self.fileName + " RTPS/1.0\nCseq: " + str(
@@ -409,7 +423,10 @@ class Client:
                     else:
                         print("Set file name for normal TEARDOWN")
                         self.fileName = ''
+
                 break
+                
+
 
     #  Use for response message
 
@@ -436,6 +453,7 @@ class Client:
                         self.openRtpPort()
                         self.totalFrame = int(lines[3].split(' ')[1])
                         self.TPF = float(lines[4].split(' ')[1])
+                        self.progress_slider['to'] = self.totalFrame
                     if self.requestSent == self.PLAY:
                         self.state = self.PLAYING
                     if self.requestSent == self.PAUSE:
@@ -473,10 +491,10 @@ class Client:
     def handler(self):
         """Handler on explicitly closing the GUI window."""
         # TODO
-        
+        self.sendRtspRequest(self.PAUSE)
         if tkinter.messagebox.askyesno("Quit message", "Do you want to quit ?"):
             self.exitClient()
-        elif self.state == self.PLAYING:
+        else:
             self.playMovie()
 
     #python Server.py 554
