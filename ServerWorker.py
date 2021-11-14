@@ -10,6 +10,7 @@ class ServerWorker:
 	PAUSE = 'PAUSE'
 	TEARDOWN = 'TEARDOWN'
 	DESCRIBE = 'DESCRIBE'
+	CHANGEFRAME = 'CHANGEFRAME'
 	
 	INIT = 0
 	READY = 1
@@ -60,7 +61,7 @@ class ServerWorker:
 				
 				try:
 					self.clientInfo['videoStream'] = VideoStream(self.filename)
-					self.totalFrame = int(self.clientInfo['videoStream'].totalFrame())
+					self.totalFrame = int(self.clientInfo['videoStream'].totalFrameNum)
 					self.state = self.READY
 				except IOError:
 					self.replyRtsp(self.FILE_NOT_FOUND_404, seq[1])
@@ -104,8 +105,7 @@ class ServerWorker:
 
 				#Additional
 				#self.clientInfo["rtpSocket"].shutdown(socket.SHUT_RDWR)
-				
-		
+						
 		
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
@@ -123,6 +123,13 @@ class ServerWorker:
 		# Process DESCRIBE request
 		elif requestType == self.DESCRIBE:
 			self.replyDescibe(self.OK_200,seq[1])	
+
+		elif requestType == self.CHANGEFRAME:
+			self.changeFrameNbr (request[3].split(' ')[1])
+
+	def changeFrameNbr (self, frameNum):
+		print ("Change to Frame" + str(frameNum))
+		self.clientInfo['videoStream'].setFrame(frameNum)
 			
 	def sendRtp(self):
 		"""Send RTP packets over UDP."""

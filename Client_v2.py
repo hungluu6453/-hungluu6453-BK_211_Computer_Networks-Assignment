@@ -20,6 +20,7 @@ class Client:
     PAUSE = 2
     TEARDOWN = 3
     DESCRIBE = 4
+    CHANGEFRAME = 5
 
     # Use for analyze
     startClock = 0
@@ -106,7 +107,8 @@ class Client:
         self.status_bar.grid(row=2, columnspan=4, sticky=W + E, padx=1, pady=1)
 
         #Create slider for video
-        self.progress_slider = Scale(self.master, from_=0, to=0, length=60, bd = 5, showvalue=0, sliderlength = 25, troughcolor = '#FFBF01', orient="horizontal")
+        self.progress_slider = Scale(self.master, from_=0, to=0, length=60, bd = 5, showvalue=0, 
+                                    sliderlength = 25, troughcolor = '#FFBF01', orient="horizontal", command=self.seekFrame)
         self.progress_slider.grid(row=1, columnspan=4, sticky=W + E, padx=1, pady=1)
 
         # Create desciption for GUI
@@ -123,6 +125,10 @@ class Client:
             self.panel.itemconfig(item, bg="#bdc1d6")
             # Setup basic operations
         # Send request -> get response (if the command is PLAY -> there will be responses) -> Display
+
+    def seekFrame(self, var):
+        if self.state == self.READY:
+            self.sendRtspRequest(self.CHANGEFRAME, var)
 
     def switchMovie(self, event):
         """Setup button handler."""
@@ -184,10 +190,9 @@ class Client:
 
     #for display Current time
     def updateBar(self):
-        self.converted_timeInterval = time.strftime('%M:%S', time.gmtime(self.frameNbr * self.TPF))
-        self.converted_timeLength = time.strftime('%M:%S', time.gmtime(self.totalFrame * self.TPF))
+        self.converted_timeInterval = time.strftime('%M:%S', time.gmtime((self.totalFrame - self.frameNbr) * self.TPF + 0.9))
         self.progress_slider.set(self.frameNbr)
-        self.status_bar.config(text= self.converted_timeInterval + " / " + self.converted_timeLength)
+        self.status_bar.config(text= '-' + self.converted_timeInterval + " / " + self.converted_timeLength)
         
         #self.status_bar.after(1, self.updateBar)
         
@@ -283,7 +288,7 @@ class Client:
         except:
             tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
 
-    def sendRtspRequest(self, requestCode):
+    def sendRtspRequest(self, requestCode, frame = -1):
         """Send RTSP request to the server."""
         # requestCode is the method name (SETUP,PLAY,...)
         # Return the response message code
@@ -365,6 +370,16 @@ class Client:
             request = "DESCRIBE " + str(self.fileName) + " RTSP/1.0\nCSeq: " + str(self.rtspSeq) + "\nSession: " + str(self.sessionId)
             self.rtspSocket.send(request.encode("utf-8"))
             self.requestSent = self.DESCRIBE
+        
+        elif requestCode == self.CHANGEFRAME:
+            # Update RTSP sequence number.
+            # ...
+            self.rtspSeq += 1
+            self.frameNbr = int(frame)
+            request = "CHANGEFRAME " + str(self.fileName) + " RTSP/1.0\nCSeq: " + str(self.rtspSeq) + "\nSession: " + str(self.sessionId) + "\nFrameNum: " + str(frame)
+            self.rtspSocket.send(request.encode("utf-8"))
+            print ("Frame" + str(frame))
+            self.requestSent = self.CHANGEFRAME
 
         else:
             return
@@ -454,6 +469,7 @@ class Client:
                         self.totalFrame = int(lines[3].split(' ')[1])
                         self.TPF = float(lines[4].split(' ')[1])
                         self.progress_slider['to'] = self.totalFrame
+                        self.converted_timeLength = time.strftime('%M:%S', time.gmtime(self.totalFrame * self.TPF))
                     if self.requestSent == self.PLAY:
                         self.state = self.PLAYING
                     if self.requestSent == self.PAUSE:
