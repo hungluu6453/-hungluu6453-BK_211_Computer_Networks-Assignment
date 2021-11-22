@@ -21,6 +21,7 @@ class Client:
     TEARDOWN = 3
     DESCRIBE = 4
     CHANGEFRAME = 5
+    CHANGESPEED = 6
 
     # Use for analyze
     startClock = 0
@@ -38,7 +39,7 @@ class Client:
         # Initialize the GUI
         self.master = master
         self.master.protocol("WM_DELETE_WINDOW", self.handler)
-        self.createWidgets()
+        
         # Input from user
         self.serverAddr = serveraddr
         self.serverPort = int(serverport)
@@ -51,7 +52,6 @@ class Client:
         self.teardownAcked = 0
         self.RtpThread = 0
         self.RtspThread = 0
-
         self.frameNbr = 0  # seqnum of Rtp packet
 
         #additional
@@ -61,6 +61,9 @@ class Client:
         self.isNewMovie = False
         self.totalFrame = 0
         self.isPlayed = False 
+        self.isInit = False
+        self.speed = float(1)
+        self.createWidgets()
 
     # THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI
 
@@ -103,8 +106,20 @@ class Client:
         self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=1, pady=1)
 
         # Create status bar for time line 
-        self.status_bar = Label(self.master, text = '--/--', width=60, height=1, bd = 1, relief=GROOVE)
-        self.status_bar.grid(row=2, columnspan=4, sticky=W + E, padx=1, pady=1)
+        self.status_bar = Label(self.master, text = '--/--', width=15, height=1, bd = 1, relief=GROOVE, anchor=E)
+        self.status_bar.grid(row=2, column=3, sticky=W + E, padx=1, pady=1)
+
+        # Create status bar for speed
+        self.status_speed = Label(self.master, text = 'x1', width=15, height=1, bd = 1, relief=GROOVE)
+        self.status_speed.grid(row=2, column=2, sticky=W + E, padx=1, pady=1)
+
+        # Create button for slow down
+        self.slowdownButton = Button(self.master, text = '<< 0.25', command=self.slowDown , width=15, height=1, bd = 1, relief=GROOVE)
+        self.slowdownButton.grid(row=2, column=0, sticky=W + E, padx=1, pady=1)
+
+        # Create button for speed up 
+        self.speedupButton = Button(self.master, text = '0.25 >>', command=self.speedUp , width=15, height=1, bd = 1, relief=GROOVE)
+        self.speedupButton.grid(row=2, column=1, sticky=W + E, padx=1, pady=1)
 
         #Create slider for video
         self.progress_slider = Scale(self.master, from_=0, to=0, length=60, bd = 5, showvalue=0, 
@@ -126,8 +141,23 @@ class Client:
             # Setup basic operations
         # Send request -> get response (if the command is PLAY -> there will be responses) -> Display
 
+    def slowDown (self):
+        if self.isInit and (self.speed - 0.25) > 0: 
+            self.speed = self.speed - 0.25
+            self.sendRtspRequest(self.CHANGESPEED, self.speed)
+            self.status_speed.config(text= 'x' + str(self.speed))
+
+    def speedUp (self):
+        if self.isInit and (self.speed + 0.25) <= 1.75: 
+            self.speed = self.speed + 0.25
+            self.sendRtspRequest(self.CHANGESPEED, self.speed)
+            self.status_speed.config(text= 'x' + str(self.speed))
+
     def seekFrame(self, var):
         if self.state == self.READY:
+            self.frameNbr = int(var)
+            self.converted_timeInterval = time.strftime('%M:%S', time.gmtime((self.totalFrame - self.frameNbr) * self.TPF + 0.9))
+            self.status_bar.config(text= '-' + self.converted_timeInterval + " / " + self.converted_timeLength)
             self.sendRtspRequest(self.CHANGEFRAME, var)
 
     def switchMovie(self, event):
@@ -144,7 +174,7 @@ class Client:
         self.fileName = str(self.panel.get(ANCHOR))  
         #print (oldFileName + " And " + self.fileName)
         if oldFileName != self.fileName:
-            print("Set True isnewMovie")
+            #print("Set True isnewMovie")
             self.isNewMovie = True
             self.stopMovie()
         
@@ -155,7 +185,6 @@ class Client:
         if self.state != self.SWITCH:
             self.sendRtspRequest(self.TEARDOWN)
         
-        print ("Close GUI")
         self.master.destroy()  # Close the gui
 
 
@@ -164,6 +193,7 @@ class Client:
         # TODO
         if self.state == self.PLAYING:
             self.sendRtspRequest(self.PAUSE)
+            self.playEvent.set()
 
     def stopMovie(self):
         if self.state != self.SWITCH:
@@ -191,7 +221,8 @@ class Client:
     #for display Current time
     def updateBar(self):
         self.converted_timeInterval = time.strftime('%M:%S', time.gmtime((self.totalFrame - self.frameNbr) * self.TPF + 0.9))
-        self.progress_slider.set(self.frameNbr)
+        if self.state != self.READY:
+            self.progress_slider.set(self.frameNbr)
         self.status_bar.config(text= '-' + self.converted_timeInterval + " / " + self.converted_timeLength)
         
         #self.status_bar.after(1, self.updateBar)
@@ -216,7 +247,7 @@ class Client:
                     rtpPacket.decode(data)
                     self.sumData += len(data)
                     curFrameNbr = rtpPacket.seqNum()
-                    print("Current Seq Num: " + str(curFrameNbr))
+                    print("Current Frame Num: " + str(curFrameNbr))
                     try:
                         if (self.frameNbr + 1) != curFrameNbr:
                             self.packetLoss += 1
@@ -239,7 +270,7 @@ class Client:
                 # receive ACK for TEARDOWN request,
                 # close the RTP socket
                 if self.teardownAcked == 1:
-                    print("TEARDOWN in ListenRTP")
+                    #print("TEARDOWN in ListenRTP")
                     self.rtpSocket.close()
                     self.teardownAcked = 0
                     self.rtspThread.join()
@@ -272,7 +303,7 @@ class Client:
         photo = ImageTk.PhotoImage(Image.open(imageFile))
         self.label.configure(image=photo, height = 288) #OG: height = 288
         self.label.image = photo
-        print("Update frame " + str(self.frameNbr))
+        #print("Update frame " + str(self.frameNbr))
         if self.totalFrame == self.frameNbr:
             print("Paused since end of mv")
             self.frameNbr = 0
@@ -288,7 +319,7 @@ class Client:
         except:
             tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
 
-    def sendRtspRequest(self, requestCode, frame = -1):
+    def sendRtspRequest(self, requestCode, var = -1):
         """Send RTSP request to the server."""
         # requestCode is the method name (SETUP,PLAY,...)
         # Return the response message code
@@ -375,11 +406,17 @@ class Client:
             # Update RTSP sequence number.
             # ...
             self.rtspSeq += 1
-            self.frameNbr = int(frame)
-            request = "CHANGEFRAME " + str(self.fileName) + " RTSP/1.0\nCSeq: " + str(self.rtspSeq) + "\nSession: " + str(self.sessionId) + "\nFrameNum: " + str(frame)
+            request = "CHANGEFRAME " + str(self.fileName) + " RTSP/1.0\nCSeq: " + str(self.rtspSeq) + "\nSession: " + str(self.sessionId) + "\nFrameNum: " + str(var)
             self.rtspSocket.send(request.encode("utf-8"))
-            print ("Frame" + str(frame))
             self.requestSent = self.CHANGEFRAME
+
+        elif requestCode == self.CHANGESPEED:
+            # Update RTSP sequence number.
+            # ...
+            self.rtspSeq += 1
+            request = "CHANGESPEED " + str(self.fileName) + " RTSP/1.0\nCSeq: " + str(self.rtspSeq) + "\nSession: " + str(self.sessionId) + "\nSpeed: " + str(var)
+            self.rtspSocket.send(request.encode("utf-8"))
+            self.requestSent = self.CHANGESPEED
 
         else:
             return
@@ -424,21 +461,17 @@ class Client:
                         CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
                 except:
                     print("No cache file to delete.")
-                
-                print ("End RTSP.")
 
                 #When listen Thread does not run
                 if not self.isPlayed or self.isPaused:
                     if self.isPaused:
                         self.rtpSocket.close()
                         self.teardownAcked = 0
-                    print("Run when not played.")
                     if self.isNewMovie: 
                         self.sendRtspRequest(self.SETUP)
                     else:
-                        print("Set file name for normal TEARDOWN")
+                        #print("Set file name for normal TEARDOWN")
                         self.fileName = ''
-
                 break
                 
 
@@ -470,6 +503,9 @@ class Client:
                         self.TPF = float(lines[4].split(' ')[1])
                         self.progress_slider['to'] = self.totalFrame
                         self.converted_timeLength = time.strftime('%M:%S', time.gmtime(self.totalFrame * self.TPF))
+                        self.updateBar()
+                        self.isInit = True
+                        self.speed = 1
                     if self.requestSent == self.PLAY:
                         self.state = self.PLAYING
                     if self.requestSent == self.PAUSE:
@@ -478,6 +514,9 @@ class Client:
                         self.playEvent.set()
                     if self.requestSent == self.TEARDOWN:
                         self.state = self.SWITCH
+                        self.isInit = False
+                        self.status_bar.config(text= "--/--" )
+                        self.progress_slider.set(0)
                         self.teardownAcked = 1
             
         #Update description pane when successfully received responses

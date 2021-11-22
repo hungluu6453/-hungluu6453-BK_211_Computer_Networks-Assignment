@@ -11,6 +11,7 @@ class ServerWorker:
 	TEARDOWN = 'TEARDOWN'
 	DESCRIBE = 'DESCRIBE'
 	CHANGEFRAME = 'CHANGEFRAME'
+	CHANGESPEED = 'CHANGESPEED'
 	
 	INIT = 0
 	READY = 1
@@ -23,6 +24,7 @@ class ServerWorker:
 
 	Played = 0
 	TPF = 0.05
+	SPD = 0.05
 	clientInfo = {}
 	
 	def __init__(self, clientInfo):
@@ -63,6 +65,7 @@ class ServerWorker:
 					self.clientInfo['videoStream'] = VideoStream(self.filename)
 					self.totalFrame = int(self.clientInfo['videoStream'].totalFrameNum)
 					self.state = self.READY
+					self.SPD = self.TPF
 				except IOError:
 					self.replyRtsp(self.FILE_NOT_FOUND_404, seq[1])
 				
@@ -122,19 +125,25 @@ class ServerWorker:
 		
 		# Process DESCRIBE request
 		elif requestType == self.DESCRIBE:
+			print("processing DESCRIBE\n")
 			self.replyDescibe(self.OK_200,seq[1])	
 
 		elif requestType == self.CHANGEFRAME:
+			print("processing CHANGEFRAME")
 			self.changeFrameNbr (request[3].split(' ')[1])
 
+		elif requestType == self.CHANGESPEED:
+			print("processing CHANGESPEED\n")
+			self.SPD = self.TPF * (2 - float(request[3].split(' ')[1]))
+
 	def changeFrameNbr (self, frameNum):
-		print ("Change to Frame" + str(frameNum))
+		print ("Change to Frame " + str(frameNum) + '\n')
 		self.clientInfo['videoStream'].setFrame(frameNum)
 			
 	def sendRtp(self):
 		"""Send RTP packets over UDP."""
 		while True:
-			self.clientInfo['event'].wait(self.TPF) #0.05
+			self.clientInfo['event'].wait(self.SPD) #0.05
 			
 			# Stop sending if request is PAUSE or TEARDOWN
 			if self.clientInfo['event'].isSet():
@@ -147,13 +156,13 @@ class ServerWorker:
 				try:
 					address = self.clientInfo['rtspSocket'][1][0]
 					port = int(self.clientInfo['rtpPort'])
-					print (str(address) +' + '+str(port))
+					#print (str(address) +' + '+str(port))
 					self.clientInfo['rtpSocket'].sendto(self.makeRtp(data, frameNumber),(address,port))
 					print("Sent frame")
 					if frameNumber == self.totalFrame:
 						print ("End of movie.")
 						self.clientInfo['videoStream'] = VideoStream(self.filename)
-						self.clientInfo["rtpSocket"].close()
+						#self.clientInfo["rtpSocket"].close()
 						break 
 				except:
 					print("Connection Error")
@@ -199,9 +208,9 @@ class ServerWorker:
 			print("500 CONNECTION ERROR")
 
 	def describe(self):
-		seq1 = "\nFPS: " + str(1/self.TPF) + "\nv = 0\nm = video " + str(self.clientInfo['rtpPort']) + " RTP/AVP 26\na=control:streamid=" \
+		seq1 = "\nFPS: " + str(1/self.TPF) + ", v = 0\nm = video " + str(self.clientInfo['rtpPort']) + " RTP/AVP 26\na=control:streamid=" \
 			 + str(self.clientInfo['session']) + "\na=mimetype:string;\"video/Mjpeg\"\n-----"
-		seq2 = "\nDescribe-Base: " + str(self.clientInfo['videoStream'].filename) + "\nDescribe-Length: " \
+		seq2 = "\nEncoding: UTF-8" + "\nDescribe-Base: " + str(self.clientInfo['videoStream'].filename) + "\nDescribe-Length: " \
 			 + str(len(seq1)) + "\n"
 		return seq1 + seq2
 

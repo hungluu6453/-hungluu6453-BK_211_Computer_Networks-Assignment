@@ -50,35 +50,35 @@ class Client:
         self.master.configure(bg='black')
         # Create Setup button
         self.setup = Button(self.master, activeforeground = "#9D72FF", activebackground = "#9D72FF", fg = "#9D72FF", highlightbackground= "#9D72FF", highlightthickness= 1,
-        height = 2, width=20, padx=10, pady=10)
+        height=3, width=10, padx=8, pady=10)
         self.setup["text"] = "Setup"
         self.setup["command"] = self.setupMovie
-        self.setup.grid(row=1, column=0, padx=10, pady=10)
+        self.setup.grid(row=1, column=0, padx=5, pady=0)
 
         # Create Play button
         self.start = Button(self.master, activeforeground ="#00B49D", activebackground = "#00B49D", fg = "#00B49D", highlightbackground= "#00B49D", highlightthickness= 1,
-        height = 2, width=20, padx=10, pady=10)
+        height=3, width=10, padx=8, pady=10)
         self.start["text"] = "Play"
         self.start["command"] = self.playMovie
-        self.start.grid(row=1, column=1, padx=10, pady=10)
+        self.start.grid(row=1, column=1, padx=5, pady=0)
 
         # Create Pause button
         self.pause = Button(self.master, activeforeground = "#3CB9FC", activebackground = "#3CB9FC", fg = "#3CB9FC", highlightbackground= "#3CB9FC", highlightthickness= 1,
-        height = 2, width=20, padx=10, pady=10)
+        height=3, width=10, padx=8, pady=10)
         self.pause["text"] = "Pause"
         self.pause["command"] = self.pauseMovie
-        self.pause.grid(row=1, column=2, padx=10, pady=10)
+        self.pause.grid(row=1, column=2, padx=5, pady=0)
 
         # Create Teardown button
         self.teardown = Button(self.master, activeforeground = "#fc7400", activebackground = "#fc7400", fg = "#fc7400", highlightbackground= "#fc7400", highlightthickness= 1,
-        height = 2, width=20, padx=10, pady=10)
+        height=3, width=10, padx=8, pady=10)
         self.teardown["text"] = "Teardown"
         self.teardown["command"] = self.exitClient
-        self.teardown.grid(row=1, column=3, padx=10, pady=10)
+        self.teardown.grid(row=1, column=3, padx=5, pady=0)
 
         # Create a label to display the movie
-        self.label = Label(self.master, width=90, height=30)
-        self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=10, pady=10)
+        self.label = Label(self.master, width=60, height=20)
+        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=1, pady=1)
 
         # Setup basic operations
         # Send request -> get response (if the command is PLAY -> there will be responses) -> Display
@@ -127,13 +127,12 @@ class Client:
         while True:
             try:
                 data = self.rtpSocket.recv(20480)
-                print("Received Data")
                 if data:
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
 
                     curFrameNbr = rtpPacket.seqNum()
-                    print("Current Seq Num: " + str(curFrameNbr))
+                    print("Current Frame Num: " + str(curFrameNbr))
 
                     if curFrameNbr > self.frameNbr: #Discard the late packet
                         self.frameNbr = curFrameNbr
@@ -147,7 +146,6 @@ class Client:
                 #receive ACK for TEARDOWN request,
                 #close the RTP socket
                 if self.teardownAcked == 1:
-                    print("Close RTP")
                     #self.rtpSocket.shutdown(socket.SHUT_RDWR)
                     self.rtpSocket.close()
                     break
